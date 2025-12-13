@@ -4,25 +4,21 @@
 
 \## Objective
 
-The objective of this project is to design a hybrid deep learning system that can take a hand-drawn
+To design a hybrid deep learning system that matches a hand-drawn or digital facial sketch
 
-or digital facial sketch as input, convert it into a meaningful representation, and retrieve the
-
-most similar real face images from a database. The system also provides explainability using heatmaps
-
-to justify why a match was selected.
+to real face images using sketch-to-photo translation, deep embeddings, and explainable AI.
 
 
 
 \## Datasets
 
-\- CUFS (Sketch–Photo Pairs)
+\- CUFS (Sketch–Photo pairs)
 
-\- CUFSF (Forensic Sketch–Photo Pairs)
+\- CUFSF (Forensic sketch–photo pairs)
 
 \- IIIT-D Sketch Dataset
 
-\- CelebA (Face Gallery and Synthetic Sketch Generation)
+\- CelebA (Face gallery and synthetic sketch generation)
 
 
 
@@ -34,7 +30,7 @@ to justify why a match was selected.
 
 \- Sketch-to-Photo Translation: Pix2Pix GAN (PyTorch)
 
-\- Sketch Encoder: ResNet18 with Metric Learning
+\- Sketch Encoder: ResNet18 (Metric Learning)
 
 \- Sketch Style Normalization: U-Net
 
@@ -72,9 +68,9 @@ Grad-CAM Explainability
 
 \- Confidence score for each match
 
-\- Heatmap visualization showing important facial regions
+\- Heatmap visualization for explainability
 
-\- No-match response if similarity is below threshold
+\- No-match decision when similarity is below threshold
 
 
 

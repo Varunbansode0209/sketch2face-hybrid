@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environments
+venv/
+.env/
+.ipynb_checkpoints/
+
+# Data & models
+data/
+processed/
+models/
+logs/
+*.pth
+*.pt
+*.onnx
+*.npy
+
+# OS files
+.DS_Store

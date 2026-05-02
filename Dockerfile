@@ -2,8 +2,8 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-# Install system dependencies required for OpenCV
-RUN apt-get update && apt-get install -y libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
+# Install system dependencies required for OpenCV and git
+RUN apt-get update && apt-get install -y libgl1 libglib2.0-0 git && rm -rf /var/lib/apt/lists/*
 
 COPY sketch2face-web/backend/requirements.txt .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
@@ -17,6 +17,11 @@ ENV HOME=/home/user \
 WORKDIR $HOME/app
 
 COPY --chown=user . $HOME/app
+
+# Explicitly clone the required submodules because Hugging Face does not init them automatically
+# Remove the empty directory if it exists and clone
+RUN rm -rf $HOME/app/pytorch-CycleGAN-and-pix2pix && \
+    git clone https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix.git $HOME/app/pytorch-CycleGAN-and-pix2pix
 
 # Change context so FastAPI resolves local database routes appropriately
 WORKDIR $HOME/app/sketch2face-web/backend

@@ -19,7 +19,7 @@ from typing import Literal
 # Add pix2pix repo to path (robust to current working directory)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PIX2PIX_ROOT = PROJECT_ROOT / "pytorch-CycleGAN-and-pix2pix"
-sys.path.append(str(PIX2PIX_ROOT))
+sys.path.insert(0, str(PIX2PIX_ROOT))
 
 from models.networks import define_G
 

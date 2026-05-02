@@ -16,3 +16,4 @@ torchvision==0.16.2
 aiofiles==23.2.1
 email-validator==2.1.0
 onnxruntime>=1.15.0
+certifi

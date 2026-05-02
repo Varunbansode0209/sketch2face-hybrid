@@ -15,12 +15,15 @@ async def get_database():
         return None
     return db.client[settings.DATABASE_NAME]
 
+import certifi
+
 async def connect_to_mongo():
     """Connect to MongoDB, gracefully handle connection failures"""
     try:
         db.client = AsyncIOMotorClient(
             settings.MONGODB_URL,
-            serverSelectionTimeoutMS=5000  # 5 second timeout
+            serverSelectionTimeoutMS=5000,  # 5 second timeout
+            tlsCAFile=certifi.where()
         )
         # Test connection
         await db.client.admin.command('ping')

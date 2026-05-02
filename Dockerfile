@@ -20,8 +20,10 @@ COPY --chown=user . $HOME/app
 
 # Explicitly clone the required submodules because Hugging Face does not init them automatically
 # Remove the empty directory if it exists and clone
-RUN rm -rf $HOME/app/pytorch-CycleGAN-and-pix2pix && \
-    git clone https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix.git $HOME/app/pytorch-CycleGAN-and-pix2pix
+RUN mv $HOME/app/checkpoints /tmp/checkpoints_backup || true && \
+    rm -rf $HOME/app/pytorch-CycleGAN-and-pix2pix && \
+    git clone https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix.git $HOME/app/pytorch-CycleGAN-and-pix2pix && \
+    mv /tmp/checkpoints_backup $HOME/app/pytorch-CycleGAN-and-pix2pix/checkpoints || true
 
 # Change context so FastAPI resolves local database routes appropriately
 WORKDIR $HOME/app/sketch2face-web/backend

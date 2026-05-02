@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 from pathlib import Path
 import sys
-from typing import Literal
+from typing import Literal, Optional
 
 # Add pix2pix repo to path (robust to current working directory)
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -30,8 +30,8 @@ CUFS_MODEL_PATH = PIX2PIX_ROOT / "checkpoints" / "cufs_pix2pix" / "latest_net_G.
 CELEBA_MODEL_PATH = PIX2PIX_ROOT / "checkpoints" / "cufs_celeba_finetune" / "latest_net_G.pth"
 
 # Generator instances (lazy-loaded)
-_cufs_generator: torch.nn.Module | None = None
-_celeba_generator: torch.nn.Module | None = None
+_cufs_generator: Optional[torch.nn.Module] = None
+_celeba_generator: Optional[torch.nn.Module] = None
 
 
 def _load_generator(checkpoint_path: Path) -> torch.nn.Module:

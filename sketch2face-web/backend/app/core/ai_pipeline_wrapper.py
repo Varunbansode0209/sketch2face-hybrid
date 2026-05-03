@@ -91,14 +91,22 @@ class AIPipelineWrapper:
             generated_image_path = None
             ts = datetime.now().strftime("%Y%m%d_%H%M%S")
             
-            if gallery_name == "cufs":
-                generated = generate_face_from_sketch(sketch, gallery_type="cufs")
-                generated_image_path = self.results_dir / f"generated_{ts}.jpg"
-                cv2.imwrite(str(generated_image_path), generated)
-            else:
-                # For CelebA, use input directly (or generate if needed)
-                generated = generate_face_from_sketch(sketch, gallery_type="celeba")
-                generated_image_path = self.results_dir / f"generated_{ts}.jpg"
+            try:
+                if gallery_name == "cufs":
+                    generated = generate_face_from_sketch(sketch, gallery_type="cufs")
+                    generated_image_path = self.results_dir / f"generated_{ts}.jpg"
+                    cv2.imwrite(str(generated_image_path), generated)
+                else:
+                    # For CelebA, use input directly (or generate if needed)
+                    generated = generate_face_from_sketch(sketch, gallery_type="celeba")
+                    generated_image_path = self.results_dir / f"generated_{ts}.jpg"
+                    cv2.imwrite(str(generated_image_path), generated)
+            except Exception as e:
+                print(f"⚠️ Pix2Pix generation failed (missing checkpoint): {e}")
+                print("Falling back to normalized sketch for processing...")
+                # Fallback to the sketch itself if model is missing in cloud
+                generated = sketch
+                generated_image_path = self.results_dir / f"generated_fallback_{ts}.jpg"
                 cv2.imwrite(str(generated_image_path), generated)
             
             # Face detection

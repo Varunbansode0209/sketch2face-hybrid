@@ -1,0 +1,179 @@
+import cv2
+import json
+import numpy as np
+from pathlib import Path
+from datetime import datetime
+
+from src.generation.pix2pix_infer import generate_face_from_sketch
+from src.embedding.arcface_infer import get_embedding
+from src.preprocess.detect_face import detect_faces
+from src.matching.visualize_matches import visualize_topk
+from src.explainablity.save_heatmap import save_heatmap_case
+from src.utils.combine_result import combine_final_results
+from src.preprocess.sketch_validator import is_forensic_style
+from src.preprocess.normalize_sketch import normalize_to_cufs
+
+
+# ================= CONFIG =================
+GALLERY_PATH = Path("embeddings/gallery/cufs_gallery.npy")
+INDEX_PATH   = Path("embeddings/gallery/cufs_index.json")
+GALLERY_DIR  = Path("data/raw/cufs/photos")
+
+OUT_ROOT = Path("processed/final_demo")
+GEN_DIR  = OUT_ROOT / "generated"
+TOPK_DIR = OUT_ROOT / "topk"
+HEAT_DIR = OUT_ROOT / "heatmaps"
+
+TOP_K = 5
+THRESHOLD = 0.30
+CONF_MARGIN = 0.05
+# =========================================
+
+
+# ---------- Load gallery ----------
+print("\n▶ Loading gallery embeddings...")
+gallery = np.load(GALLERY_PATH)
+gallery = gallery / np.linalg.norm(gallery, axis=1, keepdims=True)
+
+with open(INDEX_PATH, "r") as f:
+    index = json.load(f)
+
+print("Gallery size:", gallery.shape[0])
+
+
+def extract_face(img):
+    boxes = detect_faces(img)
+    if boxes:
+        x1, y1, x2, y2 = boxes[0]
+        return img[y1:y2, x1:x2]
+    return None   # IMPORTANT: fail if no face
+
+
+def main():
+
+    print("\n================ FINAL SYSTEM DEMO ================\n")
+    sketch_input = input("👉 Enter sketch image path: ").strip()
+    sketch_path = Path(sketch_input)
+
+    if not sketch_path.exists():
+        print("❌ Invalid sketch path")
+        return
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    GEN_DIR.mkdir(parents=True, exist_ok=True)
+    TOPK_DIR.mkdir(parents=True, exist_ok=True)
+    HEAT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # ---------- STEP 1: Load sketch ----------
+    print("\n▶ STEP 1: Loading sketch")
+    sketch = cv2.imread(str(sketch_path))
+    if sketch is None:
+        print("❌ Failed to load sketch")
+        return
+
+    # ---------- STEP 2: Sketch validation ----------
+    print("▶ STEP 2: Sketch style validation")
+    forensic = is_forensic_style(sketch)
+
+    if not forensic:
+        print("⚠️ Non-forensic sketch detected")
+        print("▶ Applying CUFS-style normalization")
+        sketch = normalize_to_cufs(sketch)
+    else:
+        print("✔ Forensic-style sketch detected")
+
+    # ---------- STEP 3: Sketch → Photo ----------
+    print("▶ STEP 3: Generating photo (Pix2Pix)")
+    generated = generate_face_from_sketch(sketch)
+
+    gen_path = GEN_DIR / f"generated_{ts}.jpg"
+    cv2.imwrite(str(gen_path), generated)
+    print("✔ Generated photo saved:", gen_path)
+
+    # ---------- STEP 4: Face detection ----------
+    print("▶ STEP 4: Face detection")
+    face = extract_face(generated)
+    if face is None:
+        print("❌ No face detected — rejecting input")
+        return
+
+    # ---------- STEP 5: ArcFace embedding ----------
+    print("▶ STEP 5: Generating embedding")
+    query_emb = get_embedding(face)
+    query_emb = query_emb / np.linalg.norm(query_emb)
+
+    # ---------- STEP 6: Matching ----------
+    print("▶ STEP 6: Matching against gallery")
+    sims = gallery @ query_emb
+    ranked = np.argsort(-sims)
+
+    top1, top2 = ranked[0], ranked[1]
+    score1, score2 = float(sims[top1]), float(sims[top2])
+    margin = score1 - score2
+
+    print("\n📊 MATCH ANALYSIS")
+    print(f"Top-1 similarity: {score1:.4f}")
+    print(f"Top-2 similarity: {score2:.4f}")
+    print(f"Confidence margin: {margin:.4f}")
+
+    if score1 < THRESHOLD:
+        print("\n🚫 RESULT: NO MATCH FOUND (Open-set rejection)")
+        return
+
+    if margin < CONF_MARGIN:
+        print("\n🚫 RESULT: AMBIGUOUS MATCH")
+        return
+
+    print("\n✅ RESULT: HIGH CONFIDENCE MATCH")
+
+    # ---------- STEP 7: Top-K visualization ----------
+    print("▶ STEP 7: Creating Top-K visualization")
+    topk_path = TOPK_DIR / f"topk_{ts}.jpg"
+
+    visualize_topk(
+        query_img_path=gen_path,
+        ranked_indices=ranked,
+        scores=sims,
+        index=index,
+        gallery_dir=GALLERY_DIR,
+        out_path=topk_path,
+        accepted_index=top1
+    )
+
+    print("✔ Top-K image saved:", topk_path)
+
+    # ---------- STEP 8: Explainability heatmap ----------
+    print("▶ STEP 8: Generating explainability heatmap")
+
+    heatmap_path = save_heatmap_case(
+        face_img=face,
+        score=score1,
+        tag=f"Top1_{index[top1]}"
+    )
+
+    print("✔ Heatmap saved:", heatmap_path)
+
+    # ---------- STEP 9: Final combined output ----------
+    final_out = OUT_ROOT / f"FINAL_DEMO_{ts}.jpg"
+
+    combine_final_results(
+        sketch_path=sketch_path,
+        generated_path=gen_path,
+        topk_path=topk_path,
+        heatmap_path=heatmap_path,
+        out_path=final_out
+    )
+
+    print(f"\n🖼️ FINAL COMBINED OUTPUT SAVED: {final_out}")
+
+    # ---------- Summary ----------
+    print("\n================ FINAL OUTPUT =================")
+    print("Sketch       :", sketch_path)
+    print("Generated    :", gen_path)
+    print("Top-K result :", topk_path)
+    print("Heatmap      :", heatmap_path)
+    print("\n🎉 SYSTEM EXECUTION COMPLETE")
+
+
+if __name__ == "__main__":
+    main()

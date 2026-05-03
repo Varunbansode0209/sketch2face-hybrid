@@ -1,0 +1,11 @@
+{
+  "framework": "vite",
+  "buildCommand": "cd sketch2face-web/frontend && npm install && npm run build",
+  "outputDirectory": "sketch2face-web/frontend/dist",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
